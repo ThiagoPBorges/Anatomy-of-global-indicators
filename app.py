@@ -6,25 +6,32 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 #Configura o layout para ficar tela cheia
-st.set_page_config(layout="wide")
+st.set_page_config(
+                    layout="wide",
+                    page_icon= '📊',
+                    page_title= 'Anatomy of global prosperity'
+                    )
 
 # ==============================================================================
 # 2. FUNÇÕES DE LÓGICA E DADOS
 # ==============================================================================
 
 def formatar_numero(valor, precisao=1):
-    # A MUDANÇA ESTÁ AQUI: Adicionamos np.number para aceitar tipos do NumPy
     if not isinstance(valor, (int, float, np.number)):
         return valor 
-
     sinal = ''
     if valor < 0:
         sinal = '-'
         valor = abs(valor)
-
-    if valor >= 1_000_000_000:
+    
+    # CORREÇÃO AQUI: Usando 'elif' para garantir a lógica correta.
+    if valor >= 1_000_000_000_000:
+        valor_formatado = valor / 1_000_000_000_000
+        sufixo = 'Tri'
+    elif valor >= 1_000_000_000:
         valor_formatado = valor / 1_000_000_000
         sufixo = 'Bi'
     elif valor >= 1_000_000:
@@ -56,8 +63,24 @@ df = carregar_dados()
 #Cria o cabeçalho para os filtros
 st.sidebar.header("Filters")
 
+# Cria a lista de continentes únicos e a ordena
+lista_continentes = sorted(df['Continent'].unique())
+
+opcoes_selectbox_continentes = ['Global'] + lista_continentes
+
+# Cria o seletor de continente
+continent_filter = st.sidebar.selectbox(
+    label="Select continent",
+    options=opcoes_selectbox_continentes
+)
+
+if continent_filter == 'Global':
+    df_base = df.copy()
+else:
+    df_base = df[df['Continent'] == continent_filter]
+
 # Cria a lista de países únicos e a ordena
-lista_paises = sorted(df['country'].unique())
+lista_paises = sorted(df_base['country'].unique())
 
 # Adiciona a opção "Global" no início da lista
 opcoes_selectbox = ['Global'] + lista_paises
@@ -67,7 +90,6 @@ country_filter = st.sidebar.selectbox(
     label="Select country",
     options=opcoes_selectbox
 )
-
 
 # Cria o slider de ano
 ano_selecionado = st.sidebar.slider(
@@ -81,13 +103,13 @@ ano_selecionado = st.sidebar.slider(
 # ==============================================================================
 
 # --- Cálculos para os Rankings (baseado apenas no ano) ---
-df_filtrado_ano = df[df['year'] == ano_selecionado]
+df_filtrado_ano = df_base[df_base['year'] == ano_selecionado]
 top_10_maiores = df_filtrado_ano.sort_values(by="prosperity_score", ascending=False).head(5)
 top_10_menores = df_filtrado_ano.sort_values(by="prosperity_score", ascending=True).head(5)
 
 if country_filter == 'Global':
     # --- CAMINHO GLOBAL: Agrega os dados de todos os países por ano ---
-    df_filtrado_raw = df.groupby('year').agg(
+    df_filtrado_raw = df_base.groupby('year').agg(
         population=('population', 'sum'),
         per_capita=('per capita', 'mean'),
         prosperity_score=('prosperity_score', 'mean'),
@@ -97,7 +119,7 @@ if country_filter == 'Global':
 
 else:
     # --- CAMINHO PAÍS: Filtra para o país selecionado (lógica original) ---
-    df_filtrado_raw = df[df['country'] == country_filter]
+    df_filtrado_raw = df_base[df_base['country'] == country_filter]
 
 # --- OBTENÇÃO DOS DADOS PARA O ANO ATUAL E ANTERIOR (unificado) ---
 dados_ano_atual = df_filtrado_raw[df_filtrado_raw['year'] == ano_selecionado]
@@ -192,8 +214,8 @@ with st.expander("Click to view raw data for the selected year"):
     with col3:
         st.metric(
             label="Per capita score (USD)",
-            value=f"${pc_atual:,}",
-            delta= delta_pc
+            value=f"$ {formatar_numero(pc_atual, precisao=2)}",
+            delta=formatar_numero(delta_pc, precisao=2)
         )
     with col4:
         st.metric(
