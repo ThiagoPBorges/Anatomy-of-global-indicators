@@ -7,6 +7,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import matplotlib.pyplot as plt
+import plotly.express as px
+import seaborn as sns
 
 #Configura o layout para ficar tela cheia
 st.set_page_config(
@@ -72,7 +75,7 @@ opcoes_selectbox_continentes = ['Global'] + lista_continentes
 continent_filter = st.sidebar.selectbox(
     label="Select continent",
     options=opcoes_selectbox_continentes
-)
+)   
 
 if continent_filter == 'Global':
     df_base = df.copy()
@@ -169,15 +172,40 @@ if not dados_ano_anterior.empty:
 # 4. LAYOUT E EXIBIÇÃO DO DASHBOARD (A PÁGINA PRINCIPAL "FRONT-END")
 # (Agora, apenas usamos os resultados dos cálculos para "desenhar" a página)
 # ==============================================================================
-
 num_paises = len(df['country'].unique())
 st.markdown(
             f"**{num_paises}** países analisados"
             )
 
-st.title("Anatomy of global prosperity")
+col1,col2  = st.columns(2)
 
-st.header("Full Dataset Overview", divider="grey", anchor=None)
+with col1:
+    st.title("🌎 Anatomy of global prosperity")
+    st.markdown("---")
+
+with col1:
+    # 1. Prepara os dados (o mesmo de antes)
+    dados_grafico = df_filtrado_ano.groupby('Continent')['prosperity_score'].mean().reset_index()
+
+    # 2. Cria o Treemap com Plotly Express
+    fig_treemap = px.treemap(
+        dados_grafico,
+        path=[px.Constant("Continentes"), 'Continent'], # Cria a hierarquia
+        values='prosperity_score', # O que define o tamanho da área
+        color='prosperity_score', # O que define a cor
+        color_continuous_scale='Blues', # Esquema de cores
+        hover_data={'prosperity_score': ':.3f'},
+        title="Proporção da Prosperidade Média"
+
+    )
+
+    # 3. Customiza o layout
+    fig_treemap.update_layout(height=250, margin=dict(t=20, b=10, l=10, r=10))
+
+    # 4. Exibe no Streamlit
+    st.plotly_chart(fig_treemap)
+
+st.markdown("---")
 
 #Create for divide my screen in two parts
 col1, col2 = st.columns(2)
@@ -196,54 +224,54 @@ st.markdown("---")
 
 col1,col2,col3,col4 = st.columns(4)
 
-with st.expander("Click to view raw data for the selected year"):
-    with col1:
+with col1:
+    st.metric(
+        label="Population score",
+        value=formatar_numero(pop_atual, precisao=2),
+        delta=formatar_numero(delta_pop, precisao=2),
+        help= "Quantity of people in the country"
+    )
+with col2:
+    st.metric(
+        label="Prosperity score",
+        value=f"{score_atual:.6f}",
+        delta=f"{delta_score:.6f}",
+        help="Ranking related to the country prosperity"
+    )
+with col3:
         st.metric(
-            label="Population score",
-            value=formatar_numero(pop_atual, precisao=2),
-            delta=formatar_numero(delta_pop, precisao=2),
-            help= "Quantity of people in the country"
-        )
-    with col2:
-        st.metric(
-            label="Prosperity score",
-            value=f"{score_atual:.6f}",
-            delta=f"{delta_score:.6f}",
-            help="Ranking related to the country prosperity"
-        )
-    with col3:
-        st.metric(
-            label="Per capita score (USD)",
-            value=f"$ {formatar_numero(pc_atual, precisao=2)}",
-            delta=formatar_numero(delta_pc, precisao=2)
-        )
-    with col4:
-        st.metric(
-            label="Trade comercial (USD)",
-            value=f"$ {formatar_numero(trade_balance, precisao=2)}",
-            delta=formatar_numero(delta_trade_balance, precisao=2)
-        )
+        label="Per capita score (USD)",
+        value=f"$ {formatar_numero(pc_atual, precisao=2)}",
+        delta=formatar_numero(delta_pc, precisao=2)
+    )
+with col4:
+    st.metric(
+        label="Trade comercial (USD)",
+        value=f"$ {formatar_numero(trade_balance, precisao=2)}",
+        delta=formatar_numero(delta_trade_balance, precisao=2)
+    )
 
     
 
-   # --- GRÁFICO DE LINHA E DADOS BRUTOS ---
-    st.subheader("Historical Data")
+# --- GRÁFICO DE LINHA E DADOS BRUTOS ---
+st.subheader("Historical Data")
 
-    # Ajusta as colunas do gráfico de linha para a visão Global
-    if country_filter == 'Global':
-        y = ["population", "per_capita", "prosperity_score"]
-    else:
-        y = ["population", "per capita", "prosperity_score"]
+# Ajusta as colunas do gráfico de linha para a visão Global
+if country_filter == 'Global':
+    y = ["population", "per_capita", "prosperity_score"]
+else:
+    y = ["population", "per capita", "prosperity_score"]
 
-    st.line_chart(
-        data=df_filtrado_raw.set_index('year'), # Usar 'year' como índice melhora a exibição
-        y= y,
-        use_container_width=True
+st.area_chart(
+    data=df_filtrado_raw.set_index('year'), # Usar 'year' como índice melhora a exibição
+    y= y,
+    use_container_width=True
     )
+
+with st.expander("Click to view raw data for the selected year"):
     if country_filter == 'Global':
         st.dataframe(df_filtrado_raw)
         
     else:
         st.dataframe(df_filtrado_raw.iloc[:,:-14])
 
-    
