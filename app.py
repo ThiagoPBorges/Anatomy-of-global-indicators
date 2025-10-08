@@ -1,4 +1,4 @@
-#Rodar local -> streamlit run "C:\Users\Thiag\OneDrive\Desktop\Projetos\Projetos para evoluir\Interconnected\Global_Economy_Indicators\Dataset\app\app.py"
+#To run locally -> streamlit run "C:\Users\Thiag\OneDrive\Desktop\Projetos\Projetos para evoluir\Interconnected\Global_Economy_Indicators\Dataset\app\app.py"
 
 # ==============================================================================
 # 1. Imports and initial settings
@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import seaborn as sns
 
-# Import dataframe of structure dataset
+# Load structured dataset
 @st.cache_data
 def carregar_dados():
     df = pd.read_csv("dados_economia_estruturado.csv")
@@ -130,13 +130,15 @@ coltitle,colmap  = st.columns(2)
 
 with coltitle:
     st.title("🌎 Anatomy of Global Prosperity")
-    # --- Session of history context ---
-    # Get the year selected (ex: 1985) and transform this into a decade (1980)
-    select_decade = (selected_year // 10) * 10 
 
-    # Show the summary of decade
+# --- Session of history context ---
+# Get the year selected (ex: 1985) and transform this into a decade (1980)
+select_decade = (selected_year // 10) * 10 
+
+# Show the summary of decade
 if select_decade in resumos_decadas:
     st.write(f"**📚 Context of the decade {select_decade}:** {resumos_decadas[select_decade]}")
+
 st.markdown("---")
 
 with colmap:
@@ -163,7 +165,7 @@ st.plotly_chart(fig_map, use_container_width=True)
 
 
 # ==============================================================================
-# 5. Create tabs
+# 6. Create tabs
 # ==============================================================================
 tab1, tab2 = st.tabs(["Overview & Rankings", "Individual Analysis"])
 
@@ -177,11 +179,11 @@ with tab1:
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("🏆 Top 5 countries highest prosperity score")
+        st.subheader("🏆 Top 5 Most Prosperous Countries")
         st.dataframe(top_5_best[['country', 'prosperity_score']])
 
     with col2:
-        st.subheader("📉 Top 5 countries least prosperity score")
+        st.subheader("📉 Top 5 Least Prosperous Countries")
         st.dataframe(top_5_worst[['country', 'prosperity_score']])
 
     st.info(
@@ -200,6 +202,7 @@ with tab1:
 
 
 with tab2:
+
     st.header("Individual Analysis", divider="grey")
 
     # --- COUNTRY FILTER ---
@@ -228,6 +231,9 @@ with tab2:
         # Raw/original dataframe
         df_filtrado_raw = df_continent[df_continent['country'] == country_filter]
 
+    if 'per_capita' in df_filtrado_raw.columns:
+        df_filtrado_raw.rename(columns={'per_capita': 'per capita'}, inplace=True)
+
     # Variables for current and previous date
     data_current_year = df_filtrado_raw[df_filtrado_raw['year'] == selected_year]
     data_previous_year = df_filtrado_raw[df_filtrado_raw['year'] == selected_year - 1]
@@ -239,7 +245,7 @@ with tab2:
 
     if not data_current_year.empty:
         # Columns was renamed in the aggregation, so we need to check both possible names
-        pc_col_name = 'per_capita' if 'per_capita' in data_current_year.columns else 'per capita'
+        pc_col_name = 'per capita'
         imports_col_name = 'imports_of_goods_and_services' if 'imports_of_goods_and_services' in data_current_year.columns else 'imports of goods and services'
         exports_col_name = 'exports_of_goods_and_services' if 'exports_of_goods_and_services' in data_current_year.columns else 'exports of goods and services'
 
@@ -253,7 +259,7 @@ with tab2:
 
     if not data_previous_year.empty:
         # Columns was renamed in the aggregation, so we need to check both possible names
-        pc_col_name_pre = 'per_capita' if 'per_capita' in data_previous_year.columns else 'per capita'
+        pc_col_name_pre = 'per capita'
         imports_col_name_pre = 'imports_of_goods_and_services' if 'imports_of_goods_and_services' in data_previous_year.columns else 'imports of goods and services'
         exports_col_name_pre = 'exports_of_goods_and_services' if 'exports_of_goods_and_services' in data_previous_year.columns else 'exports of goods and services'
         
@@ -310,17 +316,17 @@ with tab2:
 
 
         # --- Line graph and raw data---
-        st.subheader("Evolution of indicators")
+        st.subheader("Indexed Growth (Base Year = 100)")
 
         # --- Logic for create the index data---
-        df_index = df_filtrado_raw[['year', 'population', 'per_capita', 'prosperity_score']].copy()
+        df_index = df_filtrado_raw[['year', 'population', 'per capita', 'prosperity_score']].copy()
 
         # get the first year of data
-        primeiro_ano_df = df_index.iloc[0]
+        first_year_df = df_index.iloc[0]
 
         # Loop for divide each column by her value in year
-        for col in ['population', 'per_capita', 'prosperity_score']:
-            df_index.loc[:, col] = (df_index[col] / primeiro_ano_df[col]) * 1
+        for col in ['population', 'per capita', 'prosperity_score']:
+            df_index.loc[:, col] = (df_index[col] / first_year_df[col]) * 1
 
         # --- Displays the Indexed graphic ---
         st.line_chart(data=df_index.set_index('year'))
