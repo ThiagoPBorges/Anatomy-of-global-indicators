@@ -81,7 +81,7 @@ A análise completa foi apresentada em duas plataformas interativas.
 
 
 ### **Acesse as ferramentas ao vivo:**
-➡️ **[Aplicação Web Streamlit](https://thiago-borges-anatomy-of-global-indicators.streamlit.app/)** *(Adicione o link do Power BI publicado aqui, se tiver)*
+➡️ **[Aplicação Web Streamlit](https://thiago-borges-anatomy-of-global-indicators.streamlit.app/)**
 
 ---
 
